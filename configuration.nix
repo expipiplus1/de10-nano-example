@@ -117,19 +117,11 @@ in {
 
   boot.initrd.kernelModules = [ "vfat" ];
 
-  # Disable some other stuff we don't need.
-  security.sudo.enable = false;
-
   # Automatically log in at the virtual consoles.
   services.mingetty.autologinUser = "root";
 
   # Allow sshd to be started manually through "systemctl start sshd".
-  services.openssh = {
-    enable = true;
-    # Allow password login to the installation, if the user sets a password via "passwd"
-    # It is safe as root doesn't have a password by default and SSH is disabled by default
-    permitRootLogin = "yes";
-  };
+  services.openssh.enable = true;
 
   services.dhcpd4 = {
     enable = true;
@@ -190,8 +182,17 @@ in {
   # plenty of free memory.
   boot.kernel.sysctl."vm.overcommit_memory" = "1";
 
-  # Allow the user to log in as root without a password.
-  users.users.root.initialHashedPassword = "";
+  nix.trustedUsers = [ "root" "@wheel" ];
+
+  users.users.j = {
+    isNormalUser = true;
+    home = "/home/j";
+    description = "Joe Hermaszewski";
+    extraGroups = [ "wheel" ];
+    openssh.authorizedKeys.keys = [
+      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFErWB61gZadEEFteZYWZm8QRwabpl4kDHXsm0/rsLqoyWJN5Y4zF4kowSGyf92LfJu9zNBs2viuT3vmsLfg6r4wkbVyujpEo3JLuV79r9K8LcM32wA52MvQYATEzxuamZPZCBT9fI/2M6bC9lz67RQ5IoENfjZVCstOegSmODmOvGUs6JjrB40slB+4YXCVFypYq3uTyejaBMtKdu1S4TWUP8WRy8cWYmCt1+a6ACV2yJcwnhSoU2+QKt14R4XZ4QBSk4hFgiw64Bb3WVQlfQjz3qA4j5Tc8P3PESKJcKW/+AsavN1I2FzdiX1CGo2OL7p9TcZjftoi5gpbmzRX05 j@riza"
+    ];
+  };
 
   sdImage = {
     populateBootCommands = let
