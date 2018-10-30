@@ -37,6 +37,8 @@ in {
 
   environment.systemPackages = [
     pkgs.vim
+    pkgs.tmux
+    pkgs.file
   ];
 
   sound.enable = false;
