@@ -18,12 +18,7 @@ in {
   };
 
   imports = [
-    (pkgsPath + "/nixos/modules/installer/cd-dvd/sd-image.nix")
-
-    # Enable devices which are usually scanned, because we don't know the
-    # target system.
-    (pkgsPath + "/nixos/modules/installer/scan/detected.nix")
-    (pkgsPath + "/nixos/modules/installer/scan/not-detected.nix")
+    ./hardware-configuration.nix
     (pkgsPath + "/nixos/modules/profiles/minimal.nix")
 
     # Allow "nixos-rebuild" to work properly by providing
@@ -39,6 +34,7 @@ in {
     pkgs.vim
     pkgs.tmux
     pkgs.file
+    (pkgs.callPackage ./libgpiod.nix {})
   ];
 
   sound.enable = false;
@@ -53,62 +49,86 @@ in {
   boot.kernelPackages =
     let linux_socfpga = pkgs.callPackage ./linux-socfpga.nix {
           kernelPatches = [
+            pkgs.kernelPatches.bridge_stp_helper
+            # See pkgs/os-specific/linux/kernel/cpu-cgroup-v2-patches/README.md
+            # when adding a new linux version
+            # kernelPatches.cpu-cgroup-v2."4.11"
+            pkgs.kernelPatches.modinst_arg_list_too_long
             { name = "de10-nano-devicetree";
               patch = ./de10-nano-devicetree.patch;
             }
           ];
           defconfig = "socfpga_defconfig";
-          structuredExtraConfig = with lib; {
-            LBDAF = "y";
+          structuredExtraConfig =
+            let y = "y";
+                n = "n";
+            in {
+              OF_OVERLAY = y;
+              OF_CONFIGFS = y;
 
-            USB_GADGET_DEBUG = "y";
-            USB_GADGET_VERBOSE = "y";
-            USB_GADGET_DEBUG_FILES = "y";
-            USB_GADGET_DEBUG_FS = "y";
-            U_SERIAL_CONSOLE = "y";
-            USB_FUSB300 = "y";
-            USB_FOTG210_UDC = "y";
-            USB_GR_UDC = "y";
-            USB_R8A66597 = "y";
-            USB_PXA27X = "y";
-            USB_MV_UDC = "y";
-            USB_MV_U3D = "y";
-            USB_SNP_CORE = "y";
-            USB_SNP_UDC_PLAT = "y";
-            USB_M66592 = "y";
-            USB_BDC_UDC = "y";
-            USB_BDC_PCI = "y";
-            USB_AMD5536UDC = "y";
-            USB_NET2272 = "y";
-            USB_NET2272_DMA = "y";
-            USB_NET2280 = "y";
-            USB_GOKU = "y";
-            USB_EG20T = "y";
-            USB_GADGET_XILINX = "y";
-            USB_DUMMY_HCD = "y";
-            USB_LIBCOMPOSITE = "y";
-            USB_F_ACM = "y";
-            USB_U_SERIAL = "y";
-            USB_U_ETHER = "y";
-            USB_F_OBEX = "y";
-            USB_F_NCM = "y";
-            USB_F_ECM = "y";
-            USB_F_EEM = "y";
-            USB_F_SUBSET = "y";
-            USB_F_RNDIS = "y";
-            USB_F_FS = "y";
-            USB_CONFIGFS = "y";
-            USB_CONFIGFS_ACM = "y";
-            USB_CONFIGFS_OBEX = "y";
-            USB_CONFIGFS_NCM = "y";
-            USB_CONFIGFS_ECM = "y";
-            USB_CONFIGFS_ECM_SUBSET = "y";
-            USB_CONFIGFS_RNDIS = "y";
-            USB_CONFIGFS_EEM = "y";
-            USB_CONFIGFS_F_FS = "y";
-            USB_ETH = "y";
-            USB_ETH_RNDIS = "y";
-            USB_ETH_EEM = "y";
+              LBDAF = y;
+
+              PCI = n;
+              WLAN = n;
+
+              USB_CONFIGFS = y;
+              USB_CONFIGFS_MASS_STORAGE = y;
+              USB_CONFIGFS_RNDIS = y;
+
+            # LBDAF = "y";
+
+            # OF_OVERLAY = "y";
+            # OF_CONFIGFS = "y";
+
+
+            # USB_GADGET_DEBUG = "y";
+            # USB_GADGET_VERBOSE = "y";
+            # USB_GADGET_DEBUG_FILES = "y";
+            # USB_GADGET_DEBUG_FS = "y";
+            # U_SERIAL_CONSOLE = "y";
+            # USB_FUSB300 = "y";
+            # USB_FOTG210_UDC = "y";
+            # USB_GR_UDC = "y";
+            # USB_R8A66597 = "y";
+            # USB_PXA27X = "y";
+            # USB_MV_UDC = "y";
+            # USB_MV_U3D = "y";
+            # USB_SNP_CORE = "y";
+            # USB_SNP_UDC_PLAT = "y";
+            # USB_M66592 = "y";
+            # USB_BDC_UDC = "y";
+            # USB_BDC_PCI = "y";
+            # USB_AMD5536UDC = "y";
+            # USB_NET2272 = "y";
+            # USB_NET2272_DMA = "y";
+            # USB_NET2280 = "y";
+            # USB_GOKU = "y";
+            # USB_EG20T = "y";
+            # USB_GADGET_XILINX = "y";
+            # USB_DUMMY_HCD = "y";
+            # USB_LIBCOMPOSITE = "y";
+            # USB_F_ACM = "y";
+            # USB_U_SERIAL = "y";
+            # USB_U_ETHER = "y";
+            # USB_F_OBEX = "y";
+            # USB_F_NCM = "y";
+            # USB_F_ECM = "y";
+            # USB_F_EEM = "y";
+            # USB_F_SUBSET = "y";
+            # USB_F_RNDIS = "y";
+            # USB_F_FS = "y";
+            # USB_CONFIGFS = "y";
+            # USB_CONFIGFS_ACM = "y";
+            # USB_CONFIGFS_OBEX = "y";
+            # USB_CONFIGFS_NCM = "y";
+            # USB_CONFIGFS_ECM = "y";
+            # USB_CONFIGFS_ECM_SUBSET = "y";
+            # USB_CONFIGFS_RNDIS = "y";
+            # USB_CONFIGFS_EEM = "y";
+            # USB_CONFIGFS_F_FS = "y";
+            # USB_ETH = "y";
+            # USB_ETH_RNDIS = "y";
+            # USB_ETH_EEM = "y";
           };
         };
     in  pkgs.recurseIntoAttrs (pkgs.linuxPackagesFor linux_socfpga);
@@ -182,32 +202,45 @@ in {
   # plenty of free memory.
   boot.kernel.sysctl."vm.overcommit_memory" = "1";
 
+  security.polkit.enable = false;
+
   nix.trustedUsers = [ "root" "@wheel" ];
+
+  users.mutableUsers = false;
 
   users.users.j = {
     isNormalUser = true;
     home = "/home/j";
     description = "Joe Hermaszewski";
     extraGroups = [ "wheel" ];
+    hashedPassword = "$6$22Tois4OjFC$y3kfcuR7BBHVj8LnZNIfLyNhQOdVZkkTseXCNbiA95WS2JSXv4Zynmy8Ie9nCxNokgSL8cuO1Le0m4VHuzXXI.";
     openssh.authorizedKeys.keys = [
       "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFErWB61gZadEEFteZYWZm8QRwabpl4kDHXsm0/rsLqoyWJN5Y4zF4kowSGyf92LfJu9zNBs2viuT3vmsLfg6r4wkbVyujpEo3JLuV79r9K8LcM32wA52MvQYATEzxuamZPZCBT9fI/2M6bC9lz67RQ5IoENfjZVCstOegSmODmOvGUs6JjrB40slB+4YXCVFypYq3uTyejaBMtKdu1S4TWUP8WRy8cWYmCt1+a6ACV2yJcwnhSoU2+QKt14R4XZ4QBSk4hFgiw64Bb3WVQlfQjz3qA4j5Tc8P3PESKJcKW/+AsavN1I2FzdiX1CGo2OL7p9TcZjftoi5gpbmzRX05 j@riza"
     ];
   };
 
-  sdImage = {
-    populateBootCommands = let
-      configTxt = pkgs.writeText "config.txt" ''
-        # Prevent the firmware from smashing the framebuffer setup done by the mainline kernel
-        # when attempting to show low-voltage or overtemperature warnings.
-        avoid_warnings=1
+  boot.postBootCommands = ''
+  # On the first boot do some maintenance tasks
+  if [ -f /nix-path-registration ]; then
+    # Figure out device names for the boot device and root filesystem.
+    rootPart=$(readlink -f /dev/disk/by-label/NIXOS_SD)
+    bootDevice=$(lsblk -npo PKNAME $rootPart)
 
-        # U-Boot used to need this to work, regardless of whether UART is actually used or not.
-        # TODO: check when/if this can be removed.
-        enable_uart=1
-      '';
-      in ''
-        cp ${configTxt} boot/config.txt
-        ${extlinux-conf-builder} -t 3 -c ${config.system.build.toplevel} -d ./boot
-      '';
-  };
+    # Resize the root partition and the filesystem to fit the disk
+    echo ",+," | sfdisk -N2 --no-reread $bootDevice
+    ${pkgs.parted}/bin/partprobe
+    ${pkgs.e2fsprogs}/bin/resize2fs $rootPart
+
+    # Register the contents of the initial Nix store
+    ${config.nix.package.out}/bin/nix-store --load-db < /nix-path-registration
+
+    # nixos-rebuild also requires a "system" profile and an /etc/NIXOS tag.
+    touch /etc/NIXOS
+    ${config.nix.package.out}/bin/nix-env -p /nix/var/nix/profiles/system --set /run/current-system
+
+    # Prevents this from running on later boots.
+    rm -f /nix-path-registration
+  fi
+'';
+
 }

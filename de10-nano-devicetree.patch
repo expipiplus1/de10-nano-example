@@ -1,21 +1,59 @@
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index 8382337df6b2..0ecace83cb02 100644
+index b0e966d625b9..29eadd4bcb27 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
-@@ -872,6 +872,7 @@ dtb-$(CONFIG_ARCH_SOCFPGA) += \
+@@ -900,6 +900,7 @@ dtb-$(CONFIG_ARCH_SOCFPGA) += \
  	socfpga_cyclone5_mcvevk.dtb \
  	socfpga_cyclone5_socdk.dtb \
- 	socfpga_cyclone5_de0_sockit.dtb \
+ 	socfpga_cyclone5_de0_nano_soc.dtb \
 +	socfpga_cyclone5_de10_nano.dtb \
  	socfpga_cyclone5_sockit.dtb \
  	socfpga_cyclone5_socrates.dtb \
  	socfpga_cyclone5_sodia.dtb \
+diff --git a/arch/arm/boot/dts/socfpga.dtsi b/arch/arm/boot/dts/socfpga.dtsi
+index 2d300396f0ed..e3a90e8b8c38 100644
+--- a/arch/arm/boot/dts/socfpga.dtsi
++++ b/arch/arm/boot/dts/socfpga.dtsi
+@@ -99,14 +99,6 @@
+ 			};
+ 		};
+ 
+-		base_fpga_region {
+-			compatible = "fpga-region";
+-			fpga-mgr = <&fpgamgr0>;
+-
+-			#address-cells = <0x1>;
+-			#size-cells = <0x1>;
+-		};
+-
+ 		can0: can@ffc00000 {
+ 			compatible = "bosch,d_can";
+ 			reg = <0xffc00000 0x1000>;
+@@ -548,6 +540,18 @@
+ 			clocks = <&l4_main_clk>;
+ 		};
+ 
++		fpga_bridge2: fpga-bridge@ff600000 {
++			compatible = "altr,socfpga-fpga2hps-bridge";
++			reg = <0xff600000 0x100000>;
++			resets = <&rst FPGA2HPS_RESET>;
++			reset-names = "fpga2hps";
++			clocks = <&l4_main_clk>;
++		};
++
++		fpga_bridge3: fpga2sdram-bridge {
++			compatible = "altr,socfpga-fpga2sdram-bridge";
++		};
++
+ 		fpgamgr0: fpgamgr@ff706000 {
+ 			compatible = "altr,socfpga-fpga-mgr";
+ 			reg = <0xff706000 0x1000
 diff --git a/arch/arm/boot/dts/socfpga_cyclone5_de10_nano.dts b/arch/arm/boot/dts/socfpga_cyclone5_de10_nano.dts
 new file mode 100644
-index 000000000000..298469de0c2e
+index 000000000000..407760544eac
 --- /dev/null
 +++ b/arch/arm/boot/dts/socfpga_cyclone5_de10_nano.dts
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,136 @@
 +/*
 + * Copyright Intel Corporation (C) 2017. All rights reserved.
 + *
@@ -76,6 +114,20 @@ index 000000000000..298469de0c2e
 +			gpios = <&portb 25 0>;
 +			linux,code = <63>;
 +			debounce-interval = <50>;
++		};
++	};
++
++	soc {
++		base_fpga_region: base-fpga-region {
++			compatible = "fpga-region";
++			fpga-mgr = <&fpgamgr0>;
++			fpga-bridges = <&fpga_bridge0>, <&fpga_bridge1>,
++					<&fpga_bridge2>, <&fpga_bridge3>;
++
++			#address-cells = <0x2>;
++			#size-cells = <0x1>;
++			ranges = <0x00000000 0x00000000 0xc0000000 0x20000000>,
++				<0x00000001 0x00000000 0xff200000 0x00200000>;
 +		};
 +	};
 +};
