@@ -2,9 +2,13 @@
 
 set -e
 
+n=test
+
 qsys-generate --synthesis=verilog top.qsys
-quartus_map test
-quartu_cdb -merge test
-quartus_fit test
-quartus_tan test
-quartus_asm test
+quartus_map "$n"
+quartus_cdb -merge "$n"
+quartus_fit "$n"
+quartus_sta "$n"
+quartus_asm "$n"
+quartus_cpf -c -o bitstream_compression=on "output_files/$n.sof" fpga.rbf
+
