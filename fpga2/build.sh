@@ -16,8 +16,6 @@ sopc2dts \
   --input top.sopcinfo \
   --output fpga.dts \
   --type dts \
-  --bridge-removal all \
-  --bridge-ranges bridge \
   --overlay-target "/soc/base-fpga-region" \
   --pov hps_0_bridges \
   --pov-type overlay \
@@ -25,6 +23,13 @@ sopc2dts \
   --firmware-name fpga.rbf \
   --verbose
 
-sed -i 's|/dts-v1/ /plugin/|/dts-v1/;\n/plugin/|' fpga.dts
+sed -i 's|/dts-v1/ /plugin/|/dts-v1/;\n/plugin/|; s|hps_0_gic_0|intc|g' fpga.dts
 
-dtc --out-format dtb --out fpga.dtbo fpga.dts --symbols
+# This spits out several warnings which are safe to ignore, see conversation
+# here: https://patchwork.kernel.org/patch/10015389/
+dtc \
+  -Wno-interrupts_property \
+  --symbols \
+  --out-format dtb \
+  --out fpga.dtbo \
+  fpga.dts
