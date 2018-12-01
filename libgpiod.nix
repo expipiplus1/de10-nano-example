@@ -36,6 +36,6 @@ stdenv.mkDerivation rec {
     homepage = https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git/about/;
     license = licenses.lgpl2;
     maintainers = [ maintainers.expipiplus1 ];
-    platforms = platforms.all;
+    platforms = platforms.linux;
   };
 }
