@@ -23,7 +23,7 @@ sopc2dts \
   --firmware-name fpga.rbf \
   --verbose
 
-sed -i 's|/dts-v1/ /plugin/|/dts-v1/;\n/plugin/|; s|hps_0_gic_0|intc|g' fpga.dts
+sed -i 's|/dts-v1/ /plugin/|/dts-v1/;\n/plugin/|; s|hps_0_arm_gic_0|intc|g' fpga.dts
 
 # This spits out several warnings which are safe to ignore, see conversation
 # here: https://patchwork.kernel.org/patch/10015389/

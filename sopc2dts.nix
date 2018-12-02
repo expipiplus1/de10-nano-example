@@ -23,6 +23,7 @@ stdenv.mkDerivation rec {
     in  [ (intel-de10-nano + "/patches/sopc2dts/0001-Modifications-for-dts-overlay-support.patch")
           (intel-de10-nano + "/patches/sopc2dts/0002-Use-target-path-instead-of-phandle.patch")
           (intel-de10-nano + "/patches/sopc2dts/0003-remove-since-we-moved-to-full-path-for-overlay-terge.patch")
+          ./sopc2dts_components.patch
         ];
 
   nativeBuildInputs = [ jdk makeWrapper ];

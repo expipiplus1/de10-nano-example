@@ -1,0 +1,89 @@
+diff --git a/Sopc2DTS.java b/Sopc2DTS.java
+index 1766f29..cfa6893 100644
+--- a/Sopc2DTS.java
++++ b/Sopc2DTS.java
+@@ -42,6 +42,7 @@ import sopc2dts.lib.BoardInfo;
+ import sopc2dts.lib.BoardInfo.AltrStyle;
+ import sopc2dts.lib.components.BasicComponent;
+ import sopc2dts.lib.components.base.SICBridge;
++import sopc2dts.lib.SopcComponentLib;
+ import sopc2dts.parsers.BasicSystemLoader;
+ 
+ 
+@@ -74,11 +75,13 @@ public class Sopc2DTS implements LogListener {
+ 	protected CLParameter showConduit = new CLParameter(""+false);
+ 	protected CLParameter showReset = new CLParameter(""+false);
+ 	protected CLParameter showStreaming = new CLParameter(""+false);
++	protected CLParameter extraComponents = new CLParameter("");
+ 
+ 	protected static final String programName = "sopc2dts";
+ 	private static String programVersion = Package.getPackage("sopc2dts").getImplementationVersion();;
+ 	private Vector<String> vInfoFileNames = new Vector<String>();
+ 	private Vector<String> vdtsiFileNames = new Vector<String>();
++	private Vector<String> vExtraComponents = new Vector<String>();
+ 
+ 	/**
+ 	 * @param args
+@@ -128,6 +131,7 @@ public class Sopc2DTS implements LogListener {
+ 		vOptions.add(new CommandLineOption("type", 		"t", outputType, 		true, false,"The type of output to generate", "{dtb,dtb-hex8,dtb-hex32,dtb-char-arr,dts,uboot,kernel}"));
+ 		vOptions.add(new CommandLineOption("bootargs", 	null,bootargs,	 		true, false,"Default kernel arguments for the \"chosen\" section of the DTS", "kernel-args"));
+ 		vOptions.add(new CommandLineOption("sopc-parameters", 	null,sopcParameters, true, false,"What sopc-parameters to include in DTS", "{node,cmacro,all}"));
++		vOptions.add(new CommandLineOption("extra-components",	"e", extraComponents, 	true, false,"Extra component descriptions (see source for examples) (can be used many times)", "sopc component xml file"));
+ 
+ 		if(programVersion==null) {
+ 			programVersion = "unknown-version";
+@@ -139,6 +143,10 @@ public class Sopc2DTS implements LogListener {
+ 		BoardInfo bInfo = null;
+ 		Sopc2DTSGui s2dgui = null;
+ 		File f;
++		for(String fn : vExtraComponents)
++		{
++			SopcComponentLib.getInstance().loadComponentLibFile(fn);
++		}
+ 		if(vInfoFileNames.size()>0)
+ 		{
+ 
+@@ -517,6 +525,8 @@ public class Sopc2DTS implements LogListener {
+ 						}
+ 					} else if (parameter==boardFileName) {
+ 						vInfoFileNames.add(parameter.value);
++					} else if (parameter==extraComponents) {
++						vExtraComponents.add(parameter.value);
+ 					}
+ 					Logger.logln("Scanned option " + option + '(' + shortOption + ") with" +
+ 							(hasValue ? " value " + parameter.value : "out value."), 
+diff --git a/sopc2dts/lib/SopcComponentLib.java b/sopc2dts/lib/SopcComponentLib.java
+index 5344885..0aa08fe 100644
+--- a/sopc2dts/lib/SopcComponentLib.java
++++ b/sopc2dts/lib/SopcComponentLib.java
+@@ -146,18 +146,23 @@ public class SopcComponentLib implements ContentHandler {
+ 				if(dirContents[i].endsWith(".xml")&&
+ 						dirContents[i].startsWith("sopc_components_"))
+ 				{
+-					try {
+-						Logger.logln("Loaded " + loadComponentLib(new InputSource(
+-								new BufferedReader(new FileReader(dirContents[i]))))
+-								 + " components from " + dirContents[i], LogLevel.DEBUG);
+-					} catch (FileNotFoundException e) {
+-						Logger.logException(e);
+-					}
++					loadComponentLibFile(dirContents[i]);
+ 				}
+ 			}
+ 		}
+ 	}
+ 
++	public void loadComponentLibFile(String filename)
++	{
++		try {
++			Logger.logln("Loaded " + loadComponentLib(new InputSource(
++					new BufferedReader(new FileReader(filename))))
++					 + " components from " + filename, LogLevel.DEBUG);
++		} catch (FileNotFoundException e) {
++			Logger.logException(e);
++		}
++	}
++
+ 	public SopcComponentDescription getScdByClassName(String className)
+ 	{
+ 		for(SopcComponentDescription scd : vLibComponents)
