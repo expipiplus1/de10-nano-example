@@ -68,7 +68,7 @@ let src = with pkgs.lib;
 in
 
 pkgs.stdenv.mkDerivation rec {
-  name = "blink";
+  name = "test";
   inherit src;
   nativeBuildInputs = with pkgs;
     [ ghcEnv
@@ -78,7 +78,7 @@ pkgs.stdenv.mkDerivation rec {
     ];
   preBuild = shellHook;
   buildPhase = ''
-    ./Make.hs -j$NIX_BUILD_CORES
+    runhaskell Make.hs -j$NIX_BUILD_CORES
   '';
   installPhase = ''
     mkdir -p "$out"

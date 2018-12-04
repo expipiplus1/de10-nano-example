@@ -10,16 +10,12 @@ module Make
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Binary
-import           Data.Foldable
 import           Data.Hashable
 import           Data.List
-import           Data.Semigroup
 import           Data.Typeable
 import           Development.Shake
-import           Development.Shake.Command
 import           Development.Shake.FilePath
 import           Development.Shake.Util
-import           System.FilePath
 
 build, src, includeDir, rbfFile, dtboFile :: FilePath
 build = "build"
@@ -100,8 +96,7 @@ quartusRules = do
   "output_files" </> "*.map.rpt" %> \mapReport -> do
     let Just projectName = stripExtension "map.rpt" . takeFileName $ mapReport
     sources <- quartusQuery $ QuartusQuery
-      [
-        "QIP_FILE"
+      [ "QIP_FILE"
       , "VERILOG_FILE"
       , "VHDL_FILE"
       , "SYSTEMVERILOG_FILE"
@@ -121,7 +116,8 @@ quartusRules = do
       ]
 
   "output_files" </> "*.merge.rpt" %> \mergeReport -> do
-    let Just projectName = stripExtension "merge.rpt" . takeFileName $ mergeReport
+    let Just projectName =
+          stripExtension "merge.rpt" . takeFileName $ mergeReport
     need [mergeReport -<..> "map.rpt"]
     command_ [] "quartus_cdb" ["--merge", projectName]
 
@@ -130,13 +126,20 @@ quartusRules = do
     need [fitReport -<..> "merge.rpt"]
     [part] <- quartusQuery $ QuartusQuery ["DEVICE"]
     need =<< quartusQuery (QuartusQuery ["SDC_FILE"])
-    command_ [] "quartus_fit"
+    command_
+      []
+      "quartus_fit"
       [ "--part"
       , part
       , "--read_settings_file=on"
       , "--write_settings_file=off"
       , projectName
       ]
+
+  "output_files" </> "*.sta.rpt" %> \staReport -> do
+    let Just projectName = stripExtension ".sta.rpt" . takeFileName $ staReport
+    need [staReport -<.> "fit.rpt"]
+    command_ [] "quartus_sta" [projectName]
 
   "output_files" </> "*.sof" %> \sof -> do
     let Just projectName = stripExtension "sof" . takeFileName $ sof
@@ -149,10 +152,6 @@ quartusRules = do
     command_ []
              "quartus_cpf"
              ["--convert", "--option", "bitstream_compression=on", sof, rbf]
-
-  "output_files" </> "*.sta.rpt" %> \staReport -> do
-    let Just projectName = stripExtension ".sta.rpt" staReport
-    command_ [] "quartus_sta" [projectName]
 
 sopcRules :: Rules ()
 sopcRules = do
