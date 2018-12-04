@@ -78,6 +78,7 @@ pkgs.stdenv.mkDerivation rec {
     ];
   preBuild = shellHook;
   buildPhase = ''
+    export LM_LICENSE_FILE=/home/j/Downloads/7e321a34be7c_1542123969642.dat
     runhaskell Make.hs -j$NIX_BUILD_CORES
   '';
   installPhase = ''
