@@ -77,7 +77,7 @@ quartusRules :: Rules ()
 quartusRules = do
   -- Query global assignments in quartus
   quartusQuery <- addOracleCache $ \(QuartusQuery qs) -> withTempDir $ \d -> do
-    need [projectName <.> "qsf"]
+    need [projectName <.> "qsf", "top/synthesis/top.qip"]
     let tcl = d </> "get-source.tcl"
     liftIO $ writeFile tcl $ unlines
       [ "project_open test"
