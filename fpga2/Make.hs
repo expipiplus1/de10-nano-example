@@ -1,6 +1,7 @@
 #!/usr/bin/env runhaskell
 
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecursiveDo                #-}
 {-# LANGUAGE TypeFamilies               #-}
 
 module Make
@@ -76,22 +77,32 @@ type instance RuleResult QuartusQuery = [FilePath]
 quartusRules :: Rules ()
 quartusRules = do
   -- Query global assignments in quartus
-  quartusQuery <- addOracleCache $ \(QuartusQuery qs) -> withTempDir $ \d -> do
-    need [projectName <.> "qsf", "top/synthesis/top.qip"]
-    let tcl = d </> "get-source.tcl"
-    liftIO $ writeFile tcl $ unlines
-      [ "project_open test"
-      , "foreach source_type [ list " ++ unwords qs ++ "] {"
-      , "  foreach_in_collection foo [get_all_assignments -type global -name $source_type] {"
-      , "      set name   [get_assignment_info $foo -name]"
-      , "      set value  [get_assignment_info $foo -value]"
-      , "      puts $value"
-      , "  }"
-      , "}"
-      ]
-    Stdout out <- command [] "quartus_sh" ["--no_banner", "-t", tcl]
-    let filterInfo = filter (not . ("Info" `isInfixOf`))
-    pure (filterInfo . lines $ out)
+  rec
+    quartusQuery <- addOracleCache $ \(QuartusQuery qs) ->
+      withTempDir $ \dir -> do
+        need [projectName <.> "qsf"]
+        let -- These qip files provide additional global assignments, it's
+            -- important to have these available before performing the proper
+            -- query
+            bootSources = ["QIP_FILE"]
+        when (qs /= bootSources) $ do
+          boots <- quartusQuery (QuartusQuery bootSources)
+          need boots
+        let tcl = dir </> "get-source.tcl"
+        liftIO $ writeFile tcl $ unlines
+          [ "project_open test"
+          , "foreach source_type [ list " ++ unwords qs ++ "] {"
+          , "  foreach_in_collection foo [get_all_assignments -type global -name $source_type] {"
+          , "      set name   [get_assignment_info $foo -name]"
+          , "      set value  [get_assignment_info $foo -value]"
+          , "      puts $value"
+          , "  }"
+          , "}"
+          ]
+        Stdout out <- command [] "quartus_sh" ["--no_banner", "-t", tcl]
+        let filterWarnings =
+              filter (\l -> not $ any (`isInfixOf` l) ["Info", "Warning"])
+        pure (filterWarnings . lines $ out)
 
   "output_files" </> "*.map.rpt" %> \mapReport -> do
     let Just projectName = stripExtension "map.rpt" . takeFileName $ mapReport
