@@ -105,7 +105,7 @@ quartusRules = do
         pure (filterWarnings . lines $ out)
 
   "output_files" </> "*.map.rpt" %> \mapReport -> do
-    let Just projectName = stripExtension "map.rpt" . takeFileName $ mapReport
+    let Just n = stripExtension "map.rpt" . takeFileName $ mapReport
     sources <- quartusQuery $ QuartusQuery
       [ "QIP_FILE"
       , "VERILOG_FILE"
@@ -123,17 +123,17 @@ quartusRules = do
       , part
       , "--read_settings_file=on"
       , "--write_settings_file=off"
-      , projectName
+      , n
       ]
 
   "output_files" </> "*.merge.rpt" %> \mergeReport -> do
-    let Just projectName =
+    let Just n =
           stripExtension "merge.rpt" . takeFileName $ mergeReport
     need [mergeReport -<..> "map.rpt"]
-    command_ [] "quartus_cdb" ["--merge", projectName]
+    command_ [] "quartus_cdb" ["--merge", n]
 
   "output_files" </> "*.fit.rpt" %> \fitReport -> do
-    let Just projectName = stripExtension "fit.rpt" . takeFileName $ fitReport
+    let Just n = stripExtension "fit.rpt" . takeFileName $ fitReport
     need [fitReport -<..> "merge.rpt"]
     [part] <- quartusQuery $ QuartusQuery ["DEVICE"]
     need =<< quartusQuery (QuartusQuery ["SDC_FILE"])
@@ -144,18 +144,18 @@ quartusRules = do
       , part
       , "--read_settings_file=on"
       , "--write_settings_file=off"
-      , projectName
+      , n
       ]
 
   "output_files" </> "*.sta.rpt" %> \staReport -> do
-    let Just projectName = stripExtension ".sta.rpt" . takeFileName $ staReport
+    let Just n = stripExtension ".sta.rpt" . takeFileName $ staReport
     need [staReport -<.> "fit.rpt"]
-    command_ [] "quartus_sta" [projectName]
+    command_ [] "quartus_sta" [n]
 
   "output_files" </> "*.sof" %> \sof -> do
-    let Just projectName = stripExtension "sof" . takeFileName $ sof
+    let Just n = stripExtension "sof" . takeFileName $ sof
     need [sof -<.> "fit.rpt"]
-    command_ [] "quartus_asm" [projectName]
+    command_ [] "quartus_asm" [n]
 
   "output_files" </> "*.rbf" %> \rbf -> do
     let sof = rbf -<.> "sof"
@@ -182,7 +182,7 @@ sopcRules = do
       ]
 
   build </> "*.dts" %> \dts -> do
-    let projectName = takeBaseName dts
+    let n = takeBaseName dts
         sopcinfo    = qsysHPSSource <.> "sopcinfo"
     need [sopcinfo]
     command_
@@ -202,7 +202,7 @@ sopcRules = do
       , "overlay"
       , "--no-timestamp"
       , "--firmware-name"
-      , projectName <.> "rbf"
+      , n <.> "rbf"
       , "--verbose"
       ]
     command_
