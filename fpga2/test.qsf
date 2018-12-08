@@ -606,6 +606,7 @@ set_instance_assignment -name GLOBAL_SIGNAL OFF -to hps_0|hps_io|border|hps_sdra
 
 set_global_assignment -name SDC_FILE test.sdc
 set_global_assignment -name QIP_FILE top/synthesis/top.qip
+set_global_assignment -name QIP_FILE clash.qip
 
 
 set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
