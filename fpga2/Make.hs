@@ -1,25 +1,69 @@
 #!/usr/bin/env runhaskell
 
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE ViewPatterns           #-}
+{-# LANGUAGE TupleSections           #-}
+{-# LANGUAGE ApplicativeDo           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE PatternSynonyms            #-}
+{-# LANGUAGE PolyKinds                  #-}
+{-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE RecursiveDo                #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeFamilyDependencies     #-}
+{-# LANGUAGE TypeInType                 #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Make
   ( main
   ) where
 
+-- import Data.Attoparsec.Text
+import           Clash.Driver.Types
+import qualified Data.IntMap as Map
+import Data.IntMap (IntMap)
+import Text.Earley hiding (rule)
+import Text.Earley.Grammar (Prod(..))
+import           Clash.Promoted.Nat
+import Control.Error.Util (hush)
+import Clash.Promoted.Nat.Literals
+import           Clash.Promoted.Symbol
+import           Data.Bifunctor
+import           Data.Biapplicative
+import           Control.Applicative
+import           Control.Arrow
 import           Control.DeepSeq
 import           Control.Monad
-import           Data.Binary
+import           Control.Monad.State.Strict
+import           Control.Monad.Trans.Maybe
+import           Data.Binary hiding (get, put)
+import           Data.Char
 import           Data.Hashable
+import           Data.Kind
 import           Data.List
+import           Data.Maybe
+import           Data.Singletons.Prelude.List hiding (Any)
+import           Data.String
+import qualified Data.Text                    as T
 import           Data.Typeable
 import           Development.Shake
 import           Development.Shake.FilePath
 import           Development.Shake.Util
+import           GHC.TypeLits
+import Data.Traversable
 
 build, src, includeDir, rbfFile, dtboFile :: FilePath
-build = "build"
+type Build = "build"
+build = symbolVal (Proxy @Build)
 src = "src"
 includeDir = src
 rbfFile = "output_files" </> "test.rbf"
@@ -27,6 +71,11 @@ dtboFile = build </> "test.dtbo"
 
 qsysHPSSource :: String
 qsysHPSSource = "top"
+
+clashModules :: [FilePath]
+clashModules = ["Blink"]
+clashLanguage :: String
+clashLanguage = "verilog"
 
 projectName :: String
 projectName = "test"
@@ -127,8 +176,7 @@ quartusRules = do
       ]
 
   "output_files" </> "*.merge.rpt" %> \mergeReport -> do
-    let Just n =
-          stripExtension "merge.rpt" . takeFileName $ mergeReport
+    let Just n = stripExtension "merge.rpt" . takeFileName $ mergeReport
     need [mergeReport -<..> "map.rpt"]
     command_ [] "quartus_cdb" ["--merge", n]
 
@@ -163,6 +211,25 @@ quartusRules = do
     command_ []
              "quartus_cpf"
              ["--convert", "--option", "bitstream_compression=on", sof, rbf]
+
+  "clash.qip" %> \qip -> do
+    let manifests =
+          [ (build </> clashLanguage </> m </> m </> m <.> "manifest", m)
+          | m <- clashModules
+          ]
+    need (fst <$> manifests)
+    clashHDL <- fmap concat . for manifests $ \(man, module_) -> do
+      Manifest {..} <- read <$> readFile' man
+      let clashTypes = fmap toLower module_ <> "_types"
+      hasTypes <- doesFileExist clashTypes
+      let clashSrcs = [ clashTypes | hasTypes ] ++ fmap T.unpack componentNames
+          entity = module_
+      pure
+        [ build </> clashLanguage </> module_ </> entity </> c <.> "v" | c <- clashSrcs ]
+    writeFile' qip $ unlines
+      (   ("set_global_assignment -library \"top\" -name VERILOG_FILE " ++)
+      <$> clashHDL
+      )
 
 sopcRules :: Rules ()
 sopcRules = do
@@ -222,38 +289,20 @@ clashRules = do
     let bn      = takeBaseName out
         hs      = src </> bn <.> "hs"
         include = "-i" <> includeDir
-    cmd_ "clash" include "-M" "-dep-suffix" [""] "-dep-makefile" out hs
+    command_ []
+             "clash"
+             [include, "-M", "-dep-suffix", "", "-dep-makefile", out, hs]
 
-  -- Writes a list of HDL files, Clash can compile several files
-  -- at once, amortizing the overhead of reading primitives
-  batch
-    maxBound
-    ((build </> "*.listing") %>)
-    (\out -> do
-      let bn  = takeBaseName out
-          dep = build </> bn <.> "dep"
-      needSomeMakefileDepends (".hs" `isSuffixOf`) dep
-      pure out
-    )
-    (\outs -> do
-      let bns = takeBaseName <$> outs
-      vss <- compileWithClash bns
-      zipWithM_ writeFile' outs (show <$> vss)
-    )
-
--- | Given the name of some Haskell modules, compile them with Clash and write
--- the output Verilog files to a ".listing" file in the build directory.
---
--- TODO: Ignore testbench hdl files
-compileWithClash :: [String] -> Action [[FilePath]]
-compileWithClash basenames = do
-  let hss     = (\b -> src </> b <.> "hs") <$> basenames
-      include = "-i" <> includeDir
-      hdl     = "verilog"
-  cmd_ "clash" include "-odir" build "-outputdir" build ("--" <> hdl) hss
-  vs <- traverse (\b -> getDirectoryFiles "" [build </> hdl </> b <> "//*.v"])
-                 basenames
-  pure vs
+  rule $ \(m :: M (Build / "verilog" / 1 / 2 / 2 <> ".manifest")) -> do
+    let bn      = ref d1 m
+        include = "-i" <> includeDir
+        hdl     = "verilog"
+        hs      = src </> bn <.> "hs"
+    need [build </> bn <.> "dep"]
+    needSomeMakefileDepends (".hs" `isSuffixOf`) dep
+    command_ []
+             "clash"
+             [include, "-odir", build, "-outputdir", build, "--" <> hdl, hs]
 
 ----------------------------------------------------------------
 -- Utils
@@ -268,3 +317,116 @@ needSomeMakefileDepends p makefile = do
   contents <- readFile' makefile
   let deps = snd =<< parseMakefile contents
   needed (filter p deps)
+
+(.:) :: (b -> c) -> (a -> d -> b) -> a -> d -> c
+(.:) = (.).(.)
+
+rule :: CanMatch d => (Match d -> Action ()) -> Rules ()
+rule = ((listToMaybe . matchAll . T.pack) ??>)
+
+(??>) :: (FilePath -> Maybe a) -> (a -> Action ()) -> Rules ()
+match ??> act = (isJust . match) ?> (act . fromJust . match)
+
+
+----------------------------------------------------------------
+-- Fancy path matching
+--
+-- Construct matches from 'Symbol's, the constructor of 'Pat' or the type
+-- synonyms: '(:/)', '(:.)' and 'Ref'
+--
+-- Create matches with 'matchAll'
+--
+-- Consume matches with 'ref'
+--
+----------------------------------------------------------------
+
+data Pat where
+  (:<>) :: a -> b -> Pat
+  Any   :: Pat
+  Sub   :: Nat -> Pat -> Pat
+
+type a / b = a <> "/" <> b
+type a <> b = a :<> b
+
+type family HasRef (r :: Nat) (m :: Pat) :: Constraint where
+  HasRef r m = RefErr r m (r `Elem` Refs m)
+
+type family RefErr (r :: Nat) (m :: Pat) (b :: Bool) :: Constraint where
+  RefErr r m False =
+    TypeError (ShowType r :<>: Text " is not a reference in " :<>: ShowType m)
+  RefErr r m True = ()
+
+type M = Match
+data Match d where
+  Match :: IntMap T.Text -> Match d
+
+ref :: HasRef r d => SNat r -> Match d -> String
+ref n (Match rs) =
+  let i = snatToNum n
+  in  fromMaybe
+        (  error
+        $  "Impossible: unable to find reference for "
+        <> show i
+        <> " in match!"
+        )
+        (T.unpack <$> Map.lookup i rs)
+
+matchAll :: forall d a . CanMatch d => T.Text -> [Match d]
+matchAll s =
+  [ Match g
+  | p <- fst (fullParses (parser (pure (getParser (Proxy @d)))) s)
+  , Just g <- pure $ goodRefs p
+  ]
+
+-- | Are there any duplicate references?
+goodRefs :: [(Int, T.Text)] -> Maybe (IntMap T.Text)
+goodRefs =
+  sequence . Map.fromListWith (\x y -> guard (x == y) >> x) . fmap (fmap Just)
+
+type P r = Prod r T.Text Char [(Int, T.Text)]
+
+class CanMatch p where
+  type Refs p :: [Nat]
+  getParser :: Proxy p -> P r
+
+instance CanMatch Any where
+  type Refs Any = '[]
+  getParser _ = [] <$ some (satisfy (const True))
+
+instance KnownSymbol s => CanMatch s where
+  type Refs s = '[]
+  getParser _ =
+    let s = symbolVal (Proxy @s)
+    in [] <$ list s
+
+instance CanMatch (Sub n Any) => CanMatch n where
+  type Refs n = Refs (Sub n Any)
+  getParser _ = getParser (Proxy @(Sub n Any))
+
+instance (CanMatch a, CanMatch b) => CanMatch (a :<> b) where
+  type Refs (a :<> b) = Union (Refs a) (Refs b)
+  getParser _ = do
+    r1 <- getParser (Proxy @a)
+    r2 <- getParser (Proxy @b)
+    pure (r1 ++ r2)
+
+instance (KnownNat n, CanMatch p) => CanMatch (Sub n p) where
+  type Refs (Sub n p) = Union '[n] (Refs p)
+  getParser _ = do
+    (fst -> t) <- withToks (getParser (Proxy @p))
+    pure [(snatToNum (SNat @n), T.pack t)]
+
+withToks :: Prod r e t a -> Prod r e t ([t], a)
+withToks = \case
+  Pure a -> Pure ([], a)
+  Terminal p c ->
+    Terminal (\t -> (t, ) <$> p t) (biliftA2 (flip (:)) id <$> withToks c)
+  -- NonTerminal :: !(r e t a) -> !(Prod r e t (a -> b)) -> Prod r e t b
+  NonTerminal _ _ -> error "withToks: NonTerminal"
+  Alts as c ->
+    -- Alts (withToks <$> as) (((\(ts, f) (t, x) -> (t ++ ts, f x))) <$> withToks c)
+    Alts (withToks <$> as) (biliftA2 (flip (++)) id <$> withToks c)
+  Many a c -> Many
+    (withToks a)
+    ((\(t, f) (unzip -> (ts, xs)) -> (concat (ts ++ [t]), f xs)) <$> withToks c)
+  Named p n -> Named (withToks p) n
