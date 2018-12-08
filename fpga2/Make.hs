@@ -35,6 +35,7 @@ import Text.Earley hiding (rule)
 import Text.Earley.Grammar (Prod(..))
 import           Clash.Promoted.Nat
 import Control.Error.Util (hush)
+import Data.Foldable
 import Clash.Promoted.Nat.Literals
 import           Clash.Promoted.Symbol
 import           Data.Bifunctor
@@ -151,11 +152,18 @@ quartusRules = do
         Stdout out <- command [] "quartus_sh" ["--no_banner", "-t", tcl]
         let filterWarnings =
               filter (\l -> not $ any (`isInfixOf` l) ["Info", "Warning"])
+            getWarnings = filter ("Warning" `isInfixOf`)
+        traverse_ putNormal (getWarnings . lines $ out)
         pure (filterWarnings . lines $ out)
+
+  phonys $ \n -> do
+    guard ("_FILE" `isSuffixOf` n)
+    pure $ liftIO . print =<< quartusQuery (QuartusQuery [n])
 
   "output_files" </> "*.map.rpt" %> \mapReport -> do
     let Just n = stripExtension "map.rpt" . takeFileName $ mapReport
-    sources <- quartusQuery $ QuartusQuery
+    qsysSources <- quartusQuery $ QuartusQuery ["QSYS_FILE"]
+    sources     <- quartusQuery $ QuartusQuery
       [ "QIP_FILE"
       , "VERILOG_FILE"
       , "VHDL_FILE"
@@ -163,8 +171,12 @@ quartusRules = do
       , "SOURCE_FILE"
       ]
     [part] <- quartusQuery $ QuartusQuery ["DEVICE"]
+    let qips =
+          (\bn -> bn </> "synthesis" </> bn <.> "qip")
+            .   takeBaseName
+            <$> qsysSources
 
-    need sources
+    need (sources ++ qips)
     command_
       []
       "quartus_map"
@@ -223,9 +235,11 @@ quartusRules = do
       let clashTypes = fmap toLower module_ <> "_types"
       hasTypes <- doesFileExist clashTypes
       let clashSrcs = [ clashTypes | hasTypes ] ++ fmap T.unpack componentNames
-          entity = module_
+          entity    = module_
       pure
-        [ build </> clashLanguage </> module_ </> entity </> c <.> "v" | c <- clashSrcs ]
+        [ build </> clashLanguage </> module_ </> entity </> c <.> "v"
+        | c <- clashSrcs
+        ]
     writeFile' qip $ unlines
       (   ("set_global_assignment -library \"top\" -name VERILOG_FILE " ++)
       <$> clashHDL
