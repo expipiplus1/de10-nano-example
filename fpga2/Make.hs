@@ -109,8 +109,8 @@ gatherVerilog = do
 
 qsysRules :: Rules ()
 qsysRules = do
-  "*/synthesis/*.qip" %> \qip -> do
-    let n = takeBaseName qip
+  rule $ \(m :: M (1 / "synthesis" / 1 <> ".qip")) -> do
+    let n = ref d1 m
     need [n <.> "qsys"]
     command_ [] "qsys-generate" ["--synthesis=verilog", n <.> "qsys"]
 
@@ -298,7 +298,8 @@ clashRules = do
         include = "-i" <> includeDir
         hdl     = "verilog"
         hs      = src </> bn <.> "hs"
-    need [build </> bn <.> "dep"]
+        dep     = build </> bn <.> "dep"
+    need [dep]
     needSomeMakefileDepends (".hs" `isSuffixOf`) dep
     command_ []
              "clash"
