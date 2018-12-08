@@ -92,8 +92,8 @@ pkgs.stdenv.mkDerivation rec {
   '';
   installPhase = ''
     mkdir -p "$out"
-    cp output_files/fpga.rbf "$out"
-    cp build/fpga.dtbo "$out"
+    cp output_files/test.rbf "$out"
+    cp build/test.dtbo "$out"
   '';
   LANG = "en_US.UTF-8";
   shellHook = ''
