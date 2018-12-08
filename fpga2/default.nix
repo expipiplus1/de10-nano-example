@@ -59,6 +59,10 @@ let src = with pkgs.lib;
   haskellBuildInputs = hp: with hp;
     [ clash-ghc
       shake
+      singletons
+      Earley
+      containers
+      bifunctors
     ];
   ghcEnv = haskellPackages.ghcWithHoogle haskellBuildInputs;
   # ghcEnv = haskellPackages.ghcWithPackages haskellBuildInputs;
