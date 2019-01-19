@@ -87,7 +87,6 @@ pkgs.stdenv.mkDerivation rec {
   preBuild = shellHook;
   buildPhase = ''
     export LM_LICENSE_FILE=/home/j/Downloads/7e321a34be7c_1542123969642.dat
-    unset SOURCE_DATE_EPOCH
     runhaskell Make.hs -j$NIX_BUILD_CORES
   '';
   installPhase = ''
@@ -101,7 +100,5 @@ pkgs.stdenv.mkDerivation rec {
     export NIX_${ghcCommandCaps}PKG="${ghcEnv}/bin/ghc-pkg"
     export NIX_${ghcCommandCaps}_DOCDIR="${ghcEnv}/share/doc/ghc/html"
     export NIX_${ghcCommandCaps}_LIBDIR="${ghcEnv}/lib/${ghcCommand}-${ghc.version}"
-    # This makes qsys-generate really slow as it's run via proot
-    unset SOURCE_DATE_EPOCH
   '';
 }
