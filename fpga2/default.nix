@@ -23,7 +23,7 @@ let src = with pkgs.lib;
       fetchSubmodules = true;
     };
 
-    haskellPackages = with pkgs.haskell.lib; pkgs.haskell.packages.ghc844.override {
+    haskellPackages = with pkgs.haskell.lib; pkgs.haskell.packages.ghc863.override {
       overrides = self: super: {
         clash-prelude = doJailbreak (dontCheck (self.callCabal2nix "clash-prelude" (clash-compiler + "/clash-prelude") {}));
         clash-ghc = doJailbreak (enableSharedExecutables (self.callCabal2nix "clash-ghc" (clash-compiler + "/clash-ghc") {}));
