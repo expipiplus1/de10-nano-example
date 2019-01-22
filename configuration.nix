@@ -35,6 +35,7 @@ in {
     pkgs.tmux
     pkgs.file
     (pkgs.callPackage ./libgpiod.nix {})
+    pkgs.devmem2
   ];
 
   sound.enable = false;
