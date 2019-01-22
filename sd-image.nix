@@ -26,16 +26,16 @@ let pkgsPath = import ./pkgs.nix;
 
     sopc2dts = import ./sopc2dts.nix {inherit pkgs;};
 
+    soc-eds = import ./soc-eds.nix { inherit pkgs; };
+
     extlinux-conf-builder = import (pkgsPath + "/nixos/modules/system/boot/loader/generic-extlinux-compatible/extlinux-conf-builder.nix") {
       inherit pkgs;
     };
 
-    soc-eds = import ./soc-eds.nix { inherit pkgs; };
-
     u-boot = crossPkgs.buildUBoot rec {
         defconfig = "socfpga_de10_nano_defconfig";
         extraMeta.platforms = [ "armv7l-linux" ];
-        filesToInstall = [ "u-boot-with-spl.sfp" ];
+        filesToInstall = [ "u-boot-with-spl.sfp" "spl/u-boot-spl.bin" ];
       };
 
     u-boot-image = u-boot + "/u-boot-with-spl.sfp";
@@ -103,4 +103,5 @@ let pkgsPath = import ./pkgs.nix;
     };
 in {
   inherit rootfsImage u-boot image soc-eds sopc2dts storePaths libgpiod;
+  crossGcc = pkgs.gcc-arm-embedded;
 }

@@ -74,7 +74,7 @@ qsysHPSSource :: String
 qsysHPSSource = "top"
 
 clashModules :: [(String, String)]
-clashModules = [("Blink", "Blink"), ("Slave", "simple_axi3_slave")]
+clashModules = [("Blink", "Blink"), ("Slave", "simple_axi3_slave"), ("UART", "uart_test")]
 clashLanguage :: String
 clashLanguage = "verilog"
 
@@ -84,8 +84,6 @@ projectName = "test"
 main :: IO ()
 main = shakeArgs shakeOptions { shakeFiles = build } $ do
   want [rbfFile, dtboFile]
-
-  phony "timing" $ need ["output_files" </> projectName <.> "sta.rpt"]
 
   phony "clean" $ do
     putNormal $ "Cleaning files in " <> show build
@@ -162,6 +160,13 @@ quartusRules = do
   phonys $ \n -> do
     guard ("_FILE" `isSuffixOf` n)
     pure $ liftIO . print =<< quartusQuery (QuartusQuery [n])
+
+  phony "timing" $ need ["output_files" </> projectName <.> "sta.rpt"]
+
+  -- Update the initial on-chip memory according to 
+  phony "update-memory" $ do
+    command_ [] "quartus_cdb" ["--update_mif", projectName]
+    command_ [] "quartus_asm" [projectName]
 
   "output_files" </> "*.map.rpt" %> \mapReport -> do
     let Just n = stripExtension "map.rpt" . takeFileName $ mapReport

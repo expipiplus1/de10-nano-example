@@ -1,0 +1,3 @@
+[submodule "fpga2/fpga2/src/clash-utils"]
+	path = fpga2/fpga2/src/clash-utils
+	url = https://github.com/gergoerdi/clash-utils

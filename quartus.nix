@@ -4,8 +4,8 @@ let
   nixos-config = pkgs.fetchFromGitHub {
     owner = "bjornfor";
     repo = "nixos-config";
-    rev = "ad9ccdcd027f3ee11306804f3e95e2ca1d756c8e";
-    sha256 = "0cs6725az0lgky7nbl7sdy5ydhrnv83kwkkhyb1vkf76zkygab42";
+    rev = "e8b8f31931006e9c3de68dc623885e517f9289d7";
+    sha256 = "0bp0fxqd12wrvq0wmf1c6n5191jf0cyj7c0afw1vkl7xnr3sprd1";
   };
   quartuss = pkgs.callPackage (nixos-config + "/pkgs/altera-quartus") {};
 in quartuss.altera-quartus-prime-standard-18

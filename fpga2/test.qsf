@@ -664,6 +664,10 @@ set_global_assignment -name INCREMENTAL_COMPILATION_EXPORT_ROUTING ON
 set_global_assignment -name INCREMENTAL_COMPILATION_EXPORT_PARTITION_NAME Top
 set_global_assignment -name INCREMENTAL_COMPILATION_EXPORT_FLATTEN ON
 
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hps_io_hps_io_gpio_inst_LOANIO49
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hps_io_hps_io_gpio_inst_LOANIO50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hps_io_hps_io_gpio_inst_LOANIO53
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to hps_io_hps_io_gpio_inst_LOANIO54
 
 
 set_global_assignment -name QSYS_FILE top.qsys
