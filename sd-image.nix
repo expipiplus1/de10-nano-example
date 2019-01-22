@@ -11,13 +11,13 @@ let pkgsPath = import ./pkgs.nix;
       inherit (pkgs) e2fsprogs libfaketime perl;
     };
 
-    crossPkgs = import config.nixpkgs.pkgs.path {
+    crossPkgs = import pkgsPath {
       crossSystem = {
         system = "armv7l-linux";
       };
     };
 
-    pkgs = import config.nixpkgs.pkgs.path {
+    pkgs = import pkgsPath {
     };
 
     libgpiod = pkgs.callPackage ./libgpiod.nix {};
