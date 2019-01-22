@@ -73,8 +73,8 @@ dtboFile = build </> "test.dtbo"
 qsysHPSSource :: String
 qsysHPSSource = "top"
 
-clashModules :: [FilePath]
-clashModules = ["Blink"]
+clashModules :: [(String, String)]
+clashModules = [("Blink", "Blink"), ("Slave", "simple_axi3_slave")]
 clashLanguage :: String
 clashLanguage = "verilog"
 
@@ -113,7 +113,10 @@ qsysRules = do
   rule $ \(m :: M (1 / "synthesis" / 1 <> ".qip")) -> do
     let n = ref d1 m
     need [n <.> "qsys"]
-    command_ [] "qsys-generate" ["--synthesis=verilog", n <.> "qsys"]
+    -- This returns a non zero code on success...
+    Exit e <- command [] "qsys-generate" ["--synthesis=verilog", n <.> "qsys"]
+    putNormal $ "qsys-generate finished with code " ++ show e
+    pure ()
 
   "*.sopcinfo" %> \sopcinfo -> do
     let n = takeBaseName sopcinfo
@@ -226,8 +229,8 @@ quartusRules = do
 
   "clash.qip" %> \qip -> do
     let manifests =
-          [ (build </> clashLanguage </> m </> m </> m <.> "manifest", m)
-          | m <- clashModules
+          [ (build </> clashLanguage </> m </> n </> n <.> "manifest", m)
+          | (m, n) <- clashModules
           ]
     need (fst <$> manifests)
     clashHDL <- fmap concat . for manifests $ \(man, module_) -> do
@@ -235,7 +238,7 @@ quartusRules = do
       let clashTypes = fmap toLower module_ <> "_types"
       hasTypes <- doesFileExist clashTypes
       let clashSrcs = [ clashTypes | hasTypes ] ++ fmap T.unpack componentNames
-          entity    = module_
+          entity    = last clashSrcs
       pure
         [ build </> clashLanguage </> module_ </> entity </> c <.> "v"
         | c <- clashSrcs
@@ -285,6 +288,8 @@ sopcRules = do
       , "--firmware-name"
       , n <.> "rbf"
       , "--verbose"
+      , "--extra-components"
+      , "sopc_components_extra.xml"
       ]
     command_
       []

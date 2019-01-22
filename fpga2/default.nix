@@ -18,14 +18,14 @@ let src = with pkgs.lib;
     clash-compiler = pkgs.fetchFromGitHub{
       owner  = "clash-lang";
       repo = "clash-compiler";
-      rev  = "7171fa7f8412ca4145ee00a30b6bf88bdfb23099";
-      sha256 = "16j9l53fizai2cs5brybp5jda5wlwm7dmlxy6s3xyydsif9y38qa";
+      rev  = "949a05a1d8b1e4b3aabf224248c3e0e124c8fc39";
+      sha256 = "1s76bqkw1p72zgrjccgadn90hcgzp1b0zqrvlhbgq1sf6lx9wngb";
       fetchSubmodules = true;
     };
 
     haskellPackages = with pkgs.haskell.lib; pkgs.haskell.packages.ghc863.override {
       overrides = self: super: {
-        clash-prelude = doJailbreak (dontCheck (self.callCabal2nix "clash-prelude" (clash-compiler + "/clash-prelude") {}));
+        clash-prelude = dontHaddock (doJailbreak (dontCheck (self.callCabal2nix "clash-prelude" (clash-compiler + "/clash-prelude") {})));
         clash-ghc = doJailbreak (enableSharedExecutables (self.callCabal2nix "clash-ghc" (clash-compiler + "/clash-ghc") {}));
         clash-lib = self.callCabal2nix "clash-lib" (clash-compiler + "/clash-lib") {};
 
@@ -53,6 +53,8 @@ let src = with pkgs.lib;
           rev  = "b4951d4d9b7307154eac0984530bf2d70bca3358";
           sha256 = "06y04gxs21h4pd0bl61flfc4jhzfkkhly5vcm6jkn7pcfxnwflk6";
         }) {};
+
+        Earley = dontCheck super.Earley;
       };
     };
 
@@ -63,6 +65,7 @@ let src = with pkgs.lib;
       Earley
       containers
       bifunctors
+      doctest
     ];
   ghcEnv = haskellPackages.ghcWithHoogle haskellBuildInputs;
   # ghcEnv = haskellPackages.ghcWithPackages haskellBuildInputs;

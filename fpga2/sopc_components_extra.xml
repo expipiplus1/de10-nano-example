@@ -1,0 +1,8 @@
+<SOPC2DTS_COMPONENTLIB vendor="joe">
+	<S2DComponent classname="blink" group="blink" compatDevice="blink">
+		<CompatibleVersion value="1.0"></CompatibleVersion>
+  </S2DComponent>
+	<S2DComponent classname="simple_axi3_slave" group="simple_axi3_slave" compatDevice="simple_axi3_slave">
+		<CompatibleVersion value="1.0"></CompatibleVersion>
+  </S2DComponent>
+</SOPC2DTS_COMPONENTLIB>
