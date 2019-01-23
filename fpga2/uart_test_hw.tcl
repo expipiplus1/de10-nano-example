@@ -113,3 +113,18 @@ set_interface_property reset_reset SVD_ADDRESS_GROUP ""
 
 add_interface_port reset_reset reset_reset reset Input 1
 
+
+# 
+# connection point led_export
+# 
+add_interface led_export conduit end
+set_interface_property led_export associatedClock clock_clk
+set_interface_property led_export associatedReset ""
+set_interface_property led_export ENABLED true
+set_interface_property led_export EXPORT_OF ""
+set_interface_property led_export PORT_NAME_MAP ""
+set_interface_property led_export CMSIS_SVD_VARIABLES ""
+set_interface_property led_export SVD_ADDRESS_GROUP ""
+
+add_interface_port led_export led_export pio Output 8
+

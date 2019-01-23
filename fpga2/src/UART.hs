@@ -24,6 +24,7 @@ import qualified Cactus.Serial as Serial
               , PortName "loan_oe"
               , PortName "boot_from_fpga_on_failure"
               , PortName "boot_from_fpga_ready"
+              , PortName "led_export"
               ]
     }
   )
@@ -36,6 +37,7 @@ topEntity
      , Signal Serial.Dom32 (BitVector 67)
      , Signal Serial.Dom32 Bit
      , Signal Serial.Dom32 Bit
+     , Signal Serial.Dom32 (BitVector 8)
      )
 topEntity = exposeClockReset $ \loanIn ->
   let bootOnFailure = register 0 (pure 1)
@@ -47,12 +49,17 @@ topEntity = exposeClockReset $ \loanIn ->
         b <- blink
         pure (replaceBit ledPin b . replaceBit txPin t $ 0)
 
-      rx = (! rxPin) <$> loanIn
-      tx = hideClockReset Serial.topEntity rx
+      hpsSwitch = (! switchPin) <$> loanIn
+
+      rx        = (! rxPin) <$> loanIn
+      tx        = hideClockReset Serial.topEntity rx
+
+      leds      = mux (bitToBool <$> hpsSwitch) (pure 0xAA) ledCount
   in  ( loanOut :: Signal Serial.Dom32 (BitVector 67)
       , loanOE :: Signal Serial.Dom32 (BitVector 67)
       , bootOnFailure
       , bootReady
+      , leds
       )
 
 blink
@@ -60,7 +67,15 @@ blink
 blink =
   let counter :: Signal Serial.Dom32 (Unsigned 25)
       counter = register 0 (satAdd SatWrap 1 <$> counter)
-  in  boolToBit . (>= 0x1000000) <$> counter
+  in  msb <$> counter
+
+ledCount
+  :: HiddenClockReset Serial.Dom32 gated synchronous
+  => Signal Serial.Dom32 (BitVector 8)
+ledCount =
+  let counter :: Signal Serial.Dom32 (Unsigned 25)
+      counter = register 0 (satAdd SatWrap 1 <$> counter)
+  in  slice d24 d17 <$> counter
 
 rxPin = 49
 txPin = 50

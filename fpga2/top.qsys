@@ -104,6 +104,11 @@
  <instanceScript></instanceScript>
  <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
  <interface name="hps_io" internal="hps_0.hps_io" type="conduit" dir="end" />
+ <interface
+   name="led_export"
+   internal="uart_test_0.led_export"
+   type="conduit"
+   dir="end" />
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
  <module name="clk_0" kind="clock_source" version="18.1" enabled="1">
   <parameter name="clockFrequency" value="50000000" />
@@ -483,7 +488,7 @@
   <parameter name="S2FINTERRUPT_UART_Enable" value="false" />
   <parameter name="S2FINTERRUPT_USB_Enable" value="false" />
   <parameter name="S2FINTERRUPT_WATCHDOG_Enable" value="false" />
-  <parameter name="S2F_Width" value="1" />
+  <parameter name="S2F_Width" value="2" />
   <parameter name="SDIO_Mode" value="4-bit Data" />
   <parameter name="SDIO_PinMuxing" value="HPS I/O Set 0" />
   <parameter name="SEQUENCER_TYPE" value="NIOS" />
